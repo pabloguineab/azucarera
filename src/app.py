@@ -14,14 +14,15 @@ def obtener_datos_cliente(nombre_cliente):
     url = "https://des-apps.azucarera.es/sugar/gptbot/buscar_cliente"
     headers = {
         "key": "azutoken",  # Asumiendo que 'key' es el nombre del header y 'azutoken' el nombre de la clave
-        "azutoken": "QXp1Y2FyZXJhTGFWaWRhU2FiZU1lam9ySGByYXY="
+        "azutoken": "QXp1Y2FyZXJhTGFWaWRhU2FiZU1lam9ySGByYXY="  # El valor del token proporcionado
     }
-    params = {"nombre_cliente": nombre_cliente}
-    response = requests.get(url, headers=headers, params=params)
+    payload = {"nombre_cliente": nombre_cliente}
+    response = requests.post(url, headers=headers, json=payload)
     if response.status_code == 200:
         return response.json()
     else:
         raise Exception(f"Error en la API: {response.status_code}, {response.text}")
+
 
 # Configuración de la página de Streamlit
 st.set_page_config(page_title="Client Info Bot", page_icon="🤖")
