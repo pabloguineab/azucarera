@@ -1,25 +1,47 @@
 import streamlit as st
+import requests
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-
+# Carga de variables de entorno (opcional)
 load_dotenv()
 
-# app config
-st.set_page_config(page_title="Streaming bot", page_icon="🤖")
-st.title("Streaming bot")
+# Función para obtener datos del cliente mediante una API
+def obtener_datos_cliente(nombre_cliente):
+    url = "https://des-apps.azucarera.es/sugar/gptbot/buscar_cliente"
+    headers = {
+        "key": "azutoken",  # Asumiendo que 'key' es el nombre del header y 'azutoken' el nombre de la clave
+        "azutoken": "QXp1Y2FyZXJhTGFWaWRhU2FiZU1lam9ySGByYXY="
+    }
+    params = {"nombre_cliente": nombre_cliente}
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error en la API: {response.status_code}, {response.text}")
 
+# Configuración de la página de Streamlit
+st.set_page_config(page_title="Client Info Bot", page_icon="🤖")
+st.title("Client Info Bot")
+
+# Función para obtener respuesta usando Langchain
 def get_response(user_query, chat_history):
-
-    template = """
-    You are a helpful assistant. Answer the following questions considering the history of the conversation:
+    # Obtener datos del cliente
+    datos_cliente = obtener_datos_cliente(user_query)
+    
+    # Formatear los datos para incluirlos en el prompt
+    datos_formato = f"Datos del cliente: {datos_cliente}"
+    
+    template = f"""
+    You are a helpful assistant. Here is the customer data you requested:
+    {datos_formato}
 
     Chat history: {chat_history}
 
-    User question: {user_question}
+    User question: {user_query}
     """
 
     prompt = ChatPromptTemplate.from_template(template)
@@ -33,14 +55,11 @@ def get_response(user_query, chat_history):
         "user_question": user_query,
     })
 
-# session state
+# Manejo del estado de la sesión para la historia de la conversación
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        AIMessage(content="Hello, I am a bot. How can I help you?"),
-    ]
+    st.session_state.chat_history = []
 
-    
-# conversation
+# Visualización de la conversación anterior
 for message in st.session_state.chat_history:
     if isinstance(message, AIMessage):
         with st.chat_message("AI"):
@@ -49,15 +68,15 @@ for message in st.session_state.chat_history:
         with st.chat_message("Human"):
             st.write(message.content)
 
-# user input
+# Entrada de usuario
 user_query = st.chat_input("Type your message here...")
 if user_query is not None and user_query != "":
     st.session_state.chat_history.append(HumanMessage(content=user_query))
 
-    with st.chat_message("Human"):
-        st.markdown(user_query)
-
+    response = get_response(user_query, st.session_state.chat_history)
     with st.chat_message("AI"):
-        response = st.write_stream(get_response(user_query, st.session_state.chat_history))
+        st.write(response)
 
     st.session_state.chat_history.append(AIMessage(content=response))
+
+
